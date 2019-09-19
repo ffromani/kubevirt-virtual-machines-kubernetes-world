@@ -1,5 +1,5 @@
-Kubevirt: briging virtual machines in a Kubernetes world
-And how golang help doing that
+Kubevirt: bringing virtual machines in a Kubernetes world
+And how golang helps doing that
 22 Oct 2019
 Tags: containers,kubernetes,operator,management,golang
 
@@ -18,6 +18,43 @@ http://github.com/{mojaves,fromanirh}
 
 1. what is kubevirt
 2. how golang helps making kubevirt awesome
+
+* Part 1: what is kubevirt
+
+aka the dramatis personae
+
+* Kubernetes
+
+Kubernetes (K8s) is an open-source system for automating deployment,  scaling, and management of containerized applications.
+
+.image images/kube-flower.png
+.caption image and quote taken from the [offical kubernetes documentation](https://kubernetes.io/)
+
+* Container and containerized applications
+
+A (Linux) container isa set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel (cgroup, seccomp, selinux, namespaces...)
+
+* Containerized applications
+
+A containerized application is the set of files needed to an application to run as container, packaged in a specific format (image).
+
+.image images/Container_crane_and_MSC_Sola.jpg 400 _
+.caption "Containers are being loaded on the container ship MSC Sola at the container terminal of Bremerhaven in Germany" by Tvabutzku1234, public domain, from Wikimedia Commons
+
+* Kubevirt
+
+KubeVirt is a virtual machine management add-on for Kubernetes, which allow users to run VMs right alongside containers in the their Kubernetes clusters.
+
+.image images/kube_and_virt.svg
+
+KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs through Kubernetes’ Custom Resource Definitions API (CRD). KubeVirt VMs run within regular Kubernetes pods, where they have access to standard pod networking and storage, and can be managed using standard Kubernetes tools such as kubectl.
+
+* Virtual machines
+
+* Traditional Virtualization vs Containers
+
+* Bridging the gap
+
 
 * Q? A!
 
