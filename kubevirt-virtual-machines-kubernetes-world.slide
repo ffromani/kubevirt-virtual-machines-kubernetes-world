@@ -1,0 +1,26 @@
+Kubevirt: briging virtual machines in a Kubernetes world
+And how golang help doing that
+22 Oct 2019
+Tags: containers,kubernetes,operator,management,golang
+
+Francesco Romani
+Senior Software Engineer, Red Hat
+fromani {gmail,redhat}
+http://github.com/{mojaves,fromanirh}
+
+* whoami
+- sweng @ Red Hat (but opinions and mistakes are my own!)
+- works daily(-ish): kubernetes, golang, libvirt, kvm, python
+- interested in: more golang, more containers, more kubernetes; lisp
+- happy linux user (red hat linux, debian, ubuntu, fedora)
+
+* Talk outline
+
+1. what is kubevirt
+2. how golang helps making kubevirt awesome
+
+* Q? A!
+
+Questions?
+
+Slides & more @ https://github.com/mojaves/
