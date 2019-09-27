@@ -1,6 +1,6 @@
 # Slides for my talk "KubeVirt: bringing virtual machines in a Kubernetes world"
 
-[see them online](https://talks.godoc.org/github.com/mojaves/kubevirt-virtual-machines-kubernetes-world/kubevirt-virtual-machines-kubernetes-world.slide)
+[see them online](https://talks.godoc.org/github.com/fromanirh/kubevirt-virtual-machines-kubernetes-world/kubevirt-virtual-machines-kubernetes-world.slide)
 
 Please get in touch (PRs, msgs) for corrections and comments
 
