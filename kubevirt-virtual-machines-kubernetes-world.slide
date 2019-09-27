@@ -78,8 +78,8 @@ Awesome features proven awesome once again
 * C interoperability
 
 Two major players of the virtualizations ecosystems: 
-1. .link https://libvirt.org libvirt
-2. .link https://www.qemu.org QEMU
+.link https://libvirt.org libvirt
+.link https://www.qemu.org QEMU
 
 Both very mature, multi-million LOCs projects. Both written in C.
 
