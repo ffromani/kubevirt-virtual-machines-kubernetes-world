@@ -78,8 +78,8 @@ Awesome features proven awesome once again
 * C interoperability
 
 Two major players of the virtualizations ecosystems: 
-1. [libvirt](https://libvirt.org)
-2. [QEMU](https://www.qemu.org)
+1. .link https://libvirt.org libvirt
+2. .link https://www.qemu.org QEMU
 
 Both very mature, multi-million LOCs projects. Both written in C.
 
@@ -93,11 +93,81 @@ Pure-golang bindings possible but riskier (less reuse of battle-tested code - ma
 
 [1] in the 99% of the cases. In few corner cases, it talks with QEMU
 
+* A few challenges faced along the way
+
+We'll see now a couple of scenarios...
+
+* challenge: validation
+
 * challenge: validating objects
+
+We have templates: "a template describes a set of objects that can be parameterized and processed to produce a list of objects for creation by the platform."
+
+We want to validate the changes the user make to their templates - so we can detect incorrect or suboptimal/discouraged changes
+
+* challenge: validating objects /2
+
+We introduce validation rules.
+
+The validation rules refer to the object fields.
+The validation rules may involve comparing fields to other fields.
+The validation rules express the involved fields using the JSONPath notation.
+
+* challenge: validating objects /3
+
+Kubevirt (but also others) objects have optional fields.
+
+The JSONPath package adopted (from k8s) can't distinguish between optional field not being present and illegal JSONPath
+
+* challenge: validating objects /3
+
+Just send patches u/s?
+
+Use the `reflect` package to recursively create all the optional fields for the objects being tested
+Turns out it's easy:
+.link https://github.com/fromanirh/kubevirt-template-validator/tree/master/pkg/kubevirtobjs 145 combined LOC
+
+The two approaches fits nicely together
+
+* challenge: monitoring
 
 * challenge: the monitoring story
 
+We want to report metrics about VM runtime behaviour
+
+.link https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectGetAllDomainStats libvirt provides a very nice API
+
+It seems easy.
+
+* challenge: the monitoring story /2
+
+Kubevirt wants to use shared storage for the VM disks
+
+Shared storage is essential to support live migration, a key feature of VM management
+
+Shared storage may get unresponsive/blocked
+
+Due to a longstanding issue of QEMU, if shared storage becomes unresponsive the libvirt API in turn becomes unresponsive
+
+* challenge: the monitoring story /3
+
+goroutines to the rescue!
+
+Just use a throw-away goroutine for each VM to be monitored.
+The goroutine will do a single round of monitoring, then will self-destroy.
+
+.image images/gophercomplex2.jpg _ 600
+.caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
+
+* challenge: the monitoring story /4
+
+This approach works very very nicely because goroutine are very cheap and managed by runtime
+
+Avoids a lot of headaches managing an explicit thread pool (corner cases, tunables, refilling policies...)
+
 * wrap-up
+
+* takeaways
 
 golang just fits in the kubevirt use case. How was it so smooth?
 
