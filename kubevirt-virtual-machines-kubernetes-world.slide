@@ -1,5 +1,5 @@
 Kubevirt: bringing virtual machines in a Kubernetes world
-And how golang made it possible, practical, pleasent!
+And how golang made it possible and practical!
 22 Oct 2019
 Tags: containers,kubernetes,operator,management,golang
 
@@ -23,9 +23,23 @@ http://github.com/{mojaves,fromanirh}
 
 * Virtual Machines
 
-* Container and containerized applications
+"A virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer."
 
-A (Linux) container isa set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel (cgroup, seccomp, selinux, namespaces...)
+"[...] virtual machines [...] provide a substitute for a real machine. They provide functionality needed to execute entire operating systems."
+
+"Modern hypervisors use hardware-assisted virtualization, virtualization-specific hardware, primarily from the host CPUs."
+
+.link https://en.wikipedia.org/wiki/Virtual_machine source: wikipedia
+
+That's QEMU+KVM(+virtio)
+
+* Containers
+
+A (Linux) container is a set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel
+
+.link https://en.wikipedia.org/wiki/List_of_Linux_containers source: not actual quote, amalgamation.
+
+That's cgroups+seccomp+selinux+namespaces... All conveniently packed in a container runtime (cri-o, docker, rkt...)
 
 * Containerized applications
 
