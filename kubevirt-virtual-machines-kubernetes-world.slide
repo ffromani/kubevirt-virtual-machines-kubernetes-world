@@ -33,6 +33,10 @@ http://github.com/{mojaves,fromanirh}
 
 That's QEMU+KVM(+virtio)
 
+* Virtual Machines (2)
+
+.image images/diagrams/vms.png 520 _
+
 * Containers
 
 A (Linux) container is a set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel
@@ -40,6 +44,10 @@ A (Linux) container is a set of one or more processes isolated from the rest of 
 .link https://en.wikipedia.org/wiki/List_of_Linux_containers source: not actual quote, amalgamation.
 
 That's cgroups+seccomp+selinux+namespaces... All conveniently packed in a container runtime (cri-o, docker, rkt...)
+
+* Containers (2)
+
+.image images/diagrams/containers.png 520 _
 
 * Containerized applications
 
@@ -57,6 +65,8 @@ Kubernetes (K8s) is an open-source system for automating deployment,  scaling, a
 
 * Virtual Machines vs Containers
 
+.image images/diagrams/vms_vs_containers.png 520 _
+
 * Kubevirt: bridging the gap!
 
 KubeVirt is a virtual machine management add-on for Kubernetes, which allow users to run VMs right alongside containers in the their Kubernetes clusters.
@@ -64,6 +74,10 @@ KubeVirt is a virtual machine management add-on for Kubernetes, which allow user
 .image images/kube_and_virt.svg
 
 KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs through Kubernetes’ Custom Resource Definitions API (CRD). KubeVirt VMs run within regular Kubernetes pods, where they have access to standard pod networking and storage, and can be managed using standard Kubernetes tools such as kubectl.
+
+* Kubevirt: bridging the gap! (visualized)
+
+.image images/diagrams/kubevirt.png 520 _
 
 * Part 2: how golang helps making kubevirt happen
 
