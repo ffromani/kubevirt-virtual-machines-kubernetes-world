@@ -36,6 +36,7 @@ That's QEMU+KVM(+virtio)
 * Virtual Machines (2)
 
 .image images/diagrams/vms.png 520 _
+.caption "(Linux) Virtual machine block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
 * Containers
 
@@ -48,6 +49,7 @@ That's cgroups+seccomp+selinux+namespaces... All conveniently packed in a contai
 * Containers (2)
 
 .image images/diagrams/containers.png 520 _
+.caption "(Linux) Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
 * Containerized applications
 
@@ -66,6 +68,7 @@ Kubernetes (K8s) is an open-source system for automating deployment,  scaling, a
 * Virtual Machines vs Containers
 
 .image images/diagrams/vms_vs_containers.png 520 _
+.caption "(Linux) VMs vs Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
 * Kubevirt: bridging the gap!
 
@@ -78,6 +81,7 @@ KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs thr
 * Kubevirt: bridging the gap! (visualized)
 
 .image images/diagrams/kubevirt.png 520 _
+.caption "(Linux) kubevirt block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
 * Part 2: how golang helps making kubevirt happen
 
