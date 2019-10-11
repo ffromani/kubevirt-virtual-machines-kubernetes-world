@@ -71,7 +71,7 @@ Kubernetes (K8s) is an open-source system for automating deployment,  scaling, a
 
 KubeVirt is a virtual machine management add-on for Kubernetes, which allow users to run VMs right alongside containers in the their Kubernetes clusters.
 
-.image images/kube_and_virt.svg
+.image images/kube_and_virt.png
 
 KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs through Kubernetes’ Custom Resource Definitions API (CRD). KubeVirt VMs run within regular Kubernetes pods, where they have access to standard pod networking and storage, and can be managed using standard Kubernetes tools such as kubectl.
 
