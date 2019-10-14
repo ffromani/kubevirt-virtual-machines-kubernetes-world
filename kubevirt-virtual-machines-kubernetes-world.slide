@@ -107,6 +107,18 @@ Awesome features proven awesome once again
    make deployment easy and fast even in a containerized environments.
    They also help keeping the container image size small (well, small as possible).
 
+* The usual suspects (part 2)
+
+The dark side of static linking
+
+huge binaries
+
+huge container layers
+
+longer that we would like download times
+
+fixable but annoying
+
 * C interoperability
 
 Two major players of the virtualizations ecosystems: 
@@ -131,6 +143,27 @@ We'll see now a couple of scenarios...
 
 * challenge: validation
 
+* intro: VM configuration
+
+PODs are very simple to configure: few knobs
+
+VMs exposes *a lot* of knobs
+
+Some of them are optional
+
+* intro: VM configuration /2
+
+A lot of knobs:
+
+PICTURE HERE
+
+* intro: VM configuration /3
+
+Configuration flexibility is a (big) plus of VMs, we want to keep it
+
+But we also want to keep the kubernetes look & feel as much as we can,
+and to offer convenient simplifications to the users.
+
 * challenge: validating objects
 
 We have templates: "a template describes a set of objects that can be parameterized and processed to produce a list of objects for creation by the platform."
@@ -153,13 +186,11 @@ The JSONPath package adopted (from k8s) can't distinguish between optional field
 
 * challenge: validating objects /3
 
-Just send patches u/s?
-
 Use the `reflect` package to recursively create all the optional fields for the objects being tested
 Turns out it's easy:
 .link https://github.com/fromanirh/kubevirt-template-validator/tree/master/pkg/kubevirtobjs 145 combined LOC
 
-The two approaches fits nicely together
+Just send patches u/s?
 
 * challenge: monitoring
 
@@ -171,7 +202,11 @@ We want to report metrics about VM runtime behaviour
 
 It seems easy.
 
-* challenge: the monitoring story /2
+* shared storage headaches
+
+PICTURE HERE
+
+* shared storage headaches /2
 
 Kubevirt wants to use shared storage for the VM disks
 
@@ -179,9 +214,17 @@ Shared storage is essential to support live migration, a key feature of VM manag
 
 Shared storage may get unresponsive/blocked
 
+* shared storage headaches /3
+
 Due to a longstanding issue of QEMU, if shared storage becomes unresponsive the libvirt API in turn becomes unresponsive
 
-* challenge: the monitoring story /3
+No monitoring for all the affected VMs - all the VMs which have storage on the unreachable server
+
+No monitoring data means hard or impossible self healing, reduced operations
+
+Is not a minor annoyance
+
+* monitoring, revised
 
 goroutines to the rescue!
 
@@ -191,19 +234,19 @@ The goroutine will do a single round of monitoring, then will self-destroy.
 .image images/gophercomplex2.jpg _ 600
 .caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
 
-* challenge: the monitoring story /4
+* monitoring, revised /2
 
 This approach works very very nicely because goroutine are very cheap and managed by runtime
 
 Avoids a lot of headaches managing an explicit thread pool (corner cases, tunables, refilling policies...)
 
+Of course still details to be taken care of (track unresponsive VMs, throttling...)
+
 * wrap-up
 
 * takeaways
 
-golang just fits in the kubevirt use case. How was it so smooth?
-
-1. fit in the ecosystem / try hard to blend in
+1. fit in the ecosystem aka do not fight the stream
 2. pick the right tool for the right job
 
 * Q? A!
