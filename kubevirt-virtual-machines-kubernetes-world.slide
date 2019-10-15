@@ -21,6 +21,9 @@ http://github.com/{mojaves,fromanirh}
 
 * Part 1: what is kubevirt
 
+: 10mins tops
+: set the stage to explain later the challenges we face
+
 * Virtual Machines
 
 "A virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer."
@@ -147,15 +150,18 @@ We'll see now a couple of scenarios...
 
 PODs are very simple to configure: few knobs
 
-VMs exposes *a lot* of knobs
+VMs exposes *A* *LOT* of knobs
 
-Some of them are optional
+Some of them are optional (defaults)
+
+Some of them depend on each other (range, optimal values)
 
 * intro: VM configuration /2
 
-A lot of knobs:
+A lot of knobs
 
-PICTURE HERE
+.image images/virt-manager-details.png 480 _
+.caption virt-manager screenshot, from https://www.virt-manager.org/wp-content/uploads/2014/01/details.png
 
 * intro: VM configuration /3
 
@@ -180,17 +186,24 @@ The validation rules express the involved fields using the JSONPath notation.
 
 * challenge: validating objects /3
 
-Kubevirt (but also others) objects have optional fields.
+Objects representing the VM configuration have optional fields.
+The (k8s) package we use can't distinguish between broken and illegal JSONPath
 
-The JSONPath package adopted (from k8s) can't distinguish between optional field not being present and illegal JSONPath
+.image images/diagrams/domain_blocks.png 360 _
 
 * challenge: validating objects /3
 
-Use the `reflect` package to recursively create all the optional fields for the objects being tested
+Use the `reflect` package to recursively traverse the structs.
+Create nested structs as we go.
+Allocate pointers as we go.
+
+If a JSONPath exists, then is legal (also, the other way around).
+If a JSONPath is legal, we get a zero object to compare with.
+
 Turns out it's easy:
 .link https://github.com/fromanirh/kubevirt-template-validator/tree/master/pkg/kubevirtobjs 145 combined LOC
 
-Just send patches u/s?
+Patch the u/s k8s package? pending.
 
 * challenge: monitoring
 
@@ -198,23 +211,33 @@ Just send patches u/s?
 
 We want to report metrics about VM runtime behaviour
 
+K8S/container runtimes provide metrics at the POD boundaries (the "outer" shell)
+
+We need metrics inside the POD, at the VM boundaries (the "inner" shell)
+
+We really want metrics about the Guest behaviour
+
 .link https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectGetAllDomainStats libvirt provides a very nice API
 
 It seems easy.
 
+
 * shared storage headaches
 
-PICTURE HERE
+Restarting VMs is often a big deal
 
-* shared storage headaches /2
+Live migration to the rescue!
 
-Kubevirt wants to use shared storage for the VM disks
-
-Shared storage is essential to support live migration, a key feature of VM management
+We need share storage for VM disks to have efficient live migrations
 
 Shared storage may get unresponsive/blocked
 
-* shared storage headaches /3
+* shared storage headaches, illustrated
+
+.image images/livemigration.png 420 _
+.caption Virtual Machine Live Migration, from "oVirt - open your virtual datacenter", by Simone Tiraboschi, CC Attribution
+
+* shared storage headaches, diving deeper
 
 Due to a longstanding issue of QEMU, if shared storage becomes unresponsive the libvirt API in turn becomes unresponsive
 
@@ -226,10 +249,24 @@ Is not a minor annoyance
 
 * monitoring, revised
 
-goroutines to the rescue!
+Unresponsive VMs bring a lot of annoyances
 
-Just use a throw-away goroutine for each VM to be monitored.
+We need to conform to prometheus practices
+
+libvirt API is blocking, could not be fixed easily (nor QEMU can). A event loop is not really possible
+
+A thread per VM? - too much overhead, need to manage the lifecycle
+A threadpool? - do you refill the pool if threads are blocked? How do you assign VMs to threads?
+
+Code get complex really quickly
+Tuning is hard - and workload dependent
+
+* goroutines to the rescue
+
+Or maybe: Just use a throw-away goroutine for each monitoring step for each VM
 The goroutine will do a single round of monitoring, then will self-destroy.
+
+Goroutines are cheap to manage and fast to spawn!
 
 .image images/gophercomplex2.jpg _ 600
 .caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
@@ -238,9 +275,13 @@ The goroutine will do a single round of monitoring, then will self-destroy.
 
 This approach works very very nicely because goroutine are very cheap and managed by runtime
 
-Avoids a lot of headaches managing an explicit thread pool (corner cases, tunables, refilling policies...)
+Of course still details to be taken care of:
+- track unresponsive VMs
+- throttling (avoid DOS)
 
-Of course still details to be taken care of (track unresponsive VMs, throttling...)
+Fits very nicely in the prometheus model
+
+Code is short and easy to follow (well, as easy as possible)
 
 * wrap-up
 
