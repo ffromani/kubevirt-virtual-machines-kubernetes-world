@@ -276,8 +276,11 @@ Code is short and easy to follow (well, as easy as possible)
 
 * takeaways
 
-1. fit in the ecosystem aka do not fight the stream
-2. "pick the right tool for the right job" - starts early
+fit in the ecosystem aka do not fight the stream
+
+oftentimes the tools and the problem space influence each other - it's a two way street
+
+.image images/diagrams/solutions.png 400 _
 
 * Q? A!
 
