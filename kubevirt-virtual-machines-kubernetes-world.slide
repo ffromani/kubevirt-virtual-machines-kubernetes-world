@@ -1,11 +1,11 @@
 Kubevirt: bringing virtual machines in a Kubernetes world
-And how golang helps doing that
+And how golang makes it happen
 22 Oct 2019
 Tags: containers,kubernetes,operator,management,golang
 
 Francesco Romani
-Senior Software Engineer, Red Hat
-fromani {gmail,redhat}
+Sr Software Engineer, Red Hat
+fromani at {gmail,redhat} dot com
 http://github.com/{mojaves,fromanirh}
 
 * whoami
@@ -17,22 +17,42 @@ http://github.com/{mojaves,fromanirh}
 * Talk outline
 
 1. what is kubevirt
-2. how golang helps making kubevirt awesome
+2. (golang) implementation stories
 
 * Part 1: what is kubevirt
 
-aka the dramatis personae
+: 10mins tops
+: set the stage to explain later the challenges we face
 
-* Kubernetes
+* Virtual Machines
 
-Kubernetes (K8s) is an open-source system for automating deployment,  scaling, and management of containerized applications.
+"A virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer."
 
-.image images/kube-flower.png
-.caption image and quote taken from the [offical kubernetes documentation](https://kubernetes.io/)
+"[...] virtual machines [...] provide a substitute for a real machine. They provide functionality needed to execute entire operating systems."
 
-* Container and containerized applications
+"Modern hypervisors use hardware-assisted virtualization, virtualization-specific hardware, primarily from the host CPUs."
 
-A (Linux) container isa set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel (cgroup, seccomp, selinux, namespaces...)
+.link https://en.wikipedia.org/wiki/Virtual_machine source: wikipedia
+
+That's QEMU+KVM(+virtio)
+
+* Virtual Machines (2)
+
+.image images/diagrams/vms.png 520 _
+.caption "(Linux) Virtual machine block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
+
+* Containers
+
+A (Linux) container is a set of one or more processes isolated from the rest of the system, using facilities of the Linux kernel
+
+.link https://en.wikipedia.org/wiki/List_of_Linux_containers source: not actual quote, amalgamation.
+
+That's cgroups+seccomp+selinux+namespaces... All conveniently packed in a container runtime (cri-o, docker, rkt...)
+
+* Containers (2)
+
+.image images/diagrams/containers.png 520 _
+.caption "(Linux) Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
 * Containerized applications
 
@@ -41,20 +61,223 @@ A containerized application is the set of files needed to an application to run 
 .image images/Container_crane_and_MSC_Sola.jpg 400 _
 .caption "Containers are being loaded on the container ship MSC Sola at the container terminal of Bremerhaven in Germany" by Tvabutzku1234, public domain, from Wikimedia Commons
 
-* Kubevirt
+* Kubernetes
+
+Kubernetes (K8s) is an open-source system for automating deployment,  scaling, and management of containerized applications.
+
+.image images/kube-flower.png
+.caption image and quote taken from the [offical kubernetes documentation](https://kubernetes.io/)
+
+* Virtual Machines vs Containers
+
+.image images/diagrams/vms_vs_containers.png 520 _
+.caption "(Linux) VMs vs Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
+
+* Kubevirt: bridging the gap!
 
 KubeVirt is a virtual machine management add-on for Kubernetes, which allow users to run VMs right alongside containers in the their Kubernetes clusters.
 
-.image images/kube_and_virt.svg
+.image images/kube_and_virt.png
 
 KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs through Kubernetes’ Custom Resource Definitions API (CRD). KubeVirt VMs run within regular Kubernetes pods, where they have access to standard pod networking and storage, and can be managed using standard Kubernetes tools such as kubectl.
 
-* Virtual machines
+* Kubevirt: bridging the gap! (visualized)
 
-* Traditional Virtualization vs Containers
+.image images/diagrams/kubevirt.png 520 _
+.caption "(Linux) kubevirt block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
-* Bridging the gap
+* Part 2: (golang) implementation stories
 
+* The usual suspects
+
+Awesome features proven awesome once again
+
+1. *fast* *compiler*
+   helps making development smoother
+
+2. *great* *builtin* *tools*
+   unit tests (+ ginkgo/gomega), vet, lint, fmt...
+
+3. *static* *linking* / *self-contained* *artifacts*
+   make deployment easy and fast even in a containerized environments.
+   They also help keeping the container image size small (well, small as possible).
+
+* The usual suspects (part 2)
+
+The dark side of static linking
+
+huge binaries
+
+huge container layers
+
+longer that we would like download times
+
+fixable but annoying
+
+* C interoperability
+
+Two major players of the virtualizations ecosystems: 
+.link https://libvirt.org libvirt
+.link https://www.qemu.org QEMU
+
+Both very mature, multi-million LOCs projects. Both written in C.
+
+* C interoperability /2
+
+Libvirt abstracts away (most of) the complexities of running QEMU
+Kubevirt consumes the libvirt APIs[1]
+Kubevirt needed interoperability with libvirt from day 0
+
+Libvirt go bindings available from day 0, leveraging the C interoperability
+Pure-golang bindings possible but riskier (less reuse of battle-tested code - maybe in the future?)
+
+[1] in the 99% of the cases. In few corner cases, it talks with QEMU
+
+* A validation story
+
+* intro: VM configuration
+
+PODs are very simple to configure: few knobs
+
+VMs exposes *A* *LOT* of knobs
+
+Some of them are optional (defaults)
+
+Some of them depend on each other (range, optimal values)
+
+* intro: VM configuration /2
+
+A lot of knobs
+
+.image images/virt-manager-details.png 480 _
+.caption virt-manager screenshot, from https://www.virt-manager.org/wp-content/uploads/2014/01/details.png
+
+* intro: VM configuration /3
+
+Configuration flexibility is a (big) plus of VMs, we want to keep it
+
+But we also want to keep the kubernetes look & feel as much as we can,
+and to offer convenient simplifications to the users.
+
+* challenge: validating objects
+
+We have templates: "a template describes a set of objects that can be parameterized and processed to produce a list of objects for creation by the platform."
+
+We want to validate the changes the user make to their templates - so we can detect incorrect or suboptimal/discouraged changes
+
+* challenge: validating objects /2
+
+We introduce validation rules.
+
+The validation rules refer to the object fields.
+The validation rules may involve comparing fields to other fields.
+The validation rules express the involved fields using the JSONPath notation.
+
+* challenge: validating objects /3
+
+Objects representing the VM configuration have optional fields.
+The (k8s) package we use can't distinguish between broken and illegal JSONPath
+
+.image images/diagrams/domain_blocks.png 360 _
+
+* challenge: validating objects /3
+
+Use the `reflect` package to recursively traverse the structs.
+Create nested structs as we go.
+Allocate pointers as we go.
+
+If a JSONPath exists, then is legal (also, the other way around).
+If a JSONPath is legal, we get a zero object to compare with.
+
+Turns out it's easy:
+.link https://github.com/fromanirh/kubevirt-template-validator/tree/master/pkg/kubevirtobjs 145 combined LOC
+
+Patch the u/s k8s package? pending.
+
+* A monitoring story
+
+* challenge: the monitoring story
+
+We want to report metrics about VM runtime behaviour
+
+K8S/container runtimes provide metrics at the POD boundaries (the "outer" shell)
+
+We need metrics inside the POD, at the VM boundaries (the "inner" shell)
+
+We really want metrics about the Guest behaviour
+
+.link https://libvirt.org/html/libvirt-libvirt-domain.html#virConnectGetAllDomainStats libvirt provides a very nice API
+
+It seems easy.
+
+
+* shared storage headaches
+
+Restarting VMs is often a big deal
+
+Live migration to the rescue!
+
+We need share storage for VM disks to have efficient live migrations
+
+Shared storage may get unresponsive/blocked
+
+* shared storage headaches, illustrated
+
+.image images/livemigration.png 420 _
+.caption Virtual Machine Live Migration, from "oVirt - open your virtual datacenter", by Simone Tiraboschi, CC Attribution
+
+* shared storage headaches, diving deeper
+
+Due to a longstanding issue of QEMU, if shared storage becomes unresponsive the libvirt API in turn becomes unresponsive
+
+No monitoring for all the affected VMs - all the VMs which have storage on the unreachable server
+
+No monitoring data means hard or impossible self healing, reduced operations
+
+Is not a minor annoyance
+
+* monitoring, revised
+
+Unresponsive VMs bring a lot of annoyances
+
+We need to conform to prometheus practices
+
+libvirt API is blocking, could not be fixed easily (nor QEMU can). A event loop is not really possible
+
+A thread per VM? - too much overhead, need to manage the lifecycle
+A threadpool? - do you refill the pool if threads are blocked? How do you assign VMs to threads?
+
+Code get complex really quickly
+Tuning is hard - and workload dependent
+
+* goroutines to the rescue
+
+Or maybe: Just use a throw-away goroutine for each monitoring step for each VM
+The goroutine will do a single round of monitoring, then will self-destroy.
+
+Goroutines are cheap to manage and fast to spawn!
+
+.image images/gophercomplex2.jpg _ 600
+.caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
+
+* monitoring, revised /2
+
+This approach works very very nicely because goroutine are very cheap and managed by runtime
+
+Of course still details to be taken care of:
+- track unresponsive VMs
+- throttling (avoid DOS)
+
+Fits very nicely in the prometheus model
+
+Code is short and easy to follow (well, as easy as possible)
+
+* wrap-up
+
+* takeaways
+
+1. fit in the ecosystem aka do not fight the stream
+2. "pick the right tool for the right job" - starts early
 
 * Q? A!
 
