@@ -222,19 +222,22 @@ No monitoring for all the affected VMs - all the VMs which have storage on the u
 
 No monitoring data means hard or impossible self healing, reduced operations
 
-* story#2 monitoring, revised
+* story#2 monitoring, what we did before
 
-Unresponsive VMs bring a lot of annoyances
+A event loop? - not possible because of API constraints
 
-We need to conform to prometheus practices
+A thread per VM? - simple, but too much overhead
 
-libvirt API is blocking, could not be fixed easily (nor QEMU can). A event loop is not really possible
-
-A thread per VM? - too much overhead, need to manage the lifecycle
-A threadpool? - do you refill the pool if threads are blocked? How do you assign VMs to threads?
+A (smart) threadpool? - Yes but...
+- we need to tune the job queue size
+- we need to tune the pool size
+- we need to detect the blocked threads
+- we need to evict from the pool the blocked threads
+- we need to refill the thread pool
 
 Code get complex really quickly
-Tuning is hard - and workload dependent
+
+Tuning is hard - interactint knobs, workload dependent
 
 * story#2 goroutines to the rescue
 
@@ -246,11 +249,7 @@ Goroutines are cheap to manage and fast to spawn!
 .image images/gophercomplex2.jpg _ 600
 .caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
 
-* story#2 monitoring, revised /2
-
-Side to side comparison (PENDING)
-
-This approach works very very nicely because goroutine are very cheap and managed by runtime
+* story#2 goroutines to the rescue /2
 
 Of course still details to be taken care of:
 - track unresponsive VMs
