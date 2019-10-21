@@ -17,7 +17,8 @@ http://github.com/{mojaves,fromanirh}
 * Talk outline
 
 1. what is kubevirt
-2. (golang) implementation stories
+2. kubevirt {in, and} golang
+3. deep dive: implementation stories
 
 * Part 1: what is kubevirt
 
@@ -54,6 +55,11 @@ That's cgroups+seccomp+selinux+namespaces... All conveniently packed in a contai
 .image images/diagrams/containers.png 520 _
 .caption "(Linux) Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
+* Virtual Machines vs Containers
+
+.image images/diagrams/vms_vs_containers.png 520 _
+.caption "(Linux) VMs vs Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
+
 * Containerized applications
 
 A containerized application is the set of files needed to an application to run as container, packaged in a specific format (image).
@@ -68,11 +74,6 @@ Kubernetes (K8s) is an open-source system for automating deployment,  scaling, a
 .image images/kube-flower.png
 .caption image and quote taken from the [offical kubernetes documentation](https://kubernetes.io/)
 
-* Virtual Machines vs Containers
-
-.image images/diagrams/vms_vs_containers.png 520 _
-.caption "(Linux) VMs vs Containers block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
-
 * Kubevirt: bridging the gap!
 
 KubeVirt is a virtual machine management add-on for Kubernetes, which allow users to run VMs right alongside containers in the their Kubernetes clusters.
@@ -86,25 +87,21 @@ KubeVirt extends Kubernetes by adding resource types for VMs and sets of VMs thr
 .image images/diagrams/kubevirt.png 520 _
 .caption "(Linux) kubevirt block diagram" - (C) Francesco Romani 2019 - CC by-sa 4.0
 
-* Part 2: (golang) implementation stories
+* Part 2: kubevirt {in, and} golang
 
-* The usual suspects
+* The usual suspects: the tooling
 
-Awesome features proven awesome once again
+- *fast* *compiler*: helps making development smoother - tested on the field!
 
-1. *fast* *compiler*
-   helps making development smoother
+- *great* *builtin* *tools* unit tests (+ ginkgo/gomega), vet, lint, fmt...
 
-2. *great* *builtin* *tools*
-   unit tests (+ ginkgo/gomega), vet, lint, fmt...
+* The (un)usual suspects: the static linking
 
-3. *static* *linking* / *self-contained* *artifacts*
-   make deployment easy and fast even in a containerized environments.
-   They also help keeping the container image size small (well, small as possible).
+*static* *linking* / *self-contained* *artifacts*
+make deployment easy and fast even in a containerized environments.
+They also help keeping the container image size small (well, small as possible).
 
-* The usual suspects (part 2)
-
-The dark side of static linking
+* The usual suspects: the dark side of static linking
 
 huge binaries
 
@@ -133,9 +130,9 @@ Pure-golang bindings possible but riskier (less reuse of battle-tested code - ma
 
 [1] in the 99% of the cases. In few corner cases, it talks with QEMU
 
-* A validation story
+* Part 3: deep dive: implementation stories
 
-* intro: VM configuration
+* story#1 intro: VM configuration
 
 PODs are very simple to configure: few knobs
 
@@ -145,42 +142,38 @@ Some of them are optional (defaults)
 
 Some of them depend on each other (range, optimal values)
 
-* intro: VM configuration /2
+* story#1 intro: VM configuration /2
 
 A lot of knobs
 
 .image images/virt-manager-details.png 480 _
 .caption virt-manager screenshot, from https://www.virt-manager.org/wp-content/uploads/2014/01/details.png
 
-* intro: VM configuration /3
+* story#1 intro: VM configuration /3
 
 Configuration flexibility is a (big) plus of VMs, we want to keep it
 
 But we also want to keep the kubernetes look & feel as much as we can,
 and to offer convenient simplifications to the users.
 
-* challenge: validating objects
+* story#1 challenge: validating objects
 
-We have templates: "a template describes a set of objects that can be parameterized and processed to produce a list of objects for creation by the platform."
+templates a good way to simplify: "a template describes a set of objects that can be parameterized and processed to produce a list of objects for creation by the platform."
 
-We want to validate the changes the user make to their templates - so we can detect incorrect or suboptimal/discouraged changes
+We want to validate the changes the user make to their templates - so we can detect incorrect or suboptimal/discouraged changes.
+So, we introduce validation rules.
 
-* challenge: validating objects /2
+- the rules refers to fields of the API objects using the JSONPath notation.
+- the rules may(/should) involve comparing fields to other fields.
 
-We introduce validation rules.
-
-The validation rules refer to the object fields.
-The validation rules may involve comparing fields to other fields.
-The validation rules express the involved fields using the JSONPath notation.
-
-* challenge: validating objects /3
+* story#1 challenge: validating objects /2
 
 Objects representing the VM configuration have optional fields.
 The (k8s) package we use can't distinguish between broken and illegal JSONPath
 
 .image images/diagrams/domain_blocks.png 360 _
 
-* challenge: validating objects /3
+* story#1 challenge: validating objects /3
 
 Use the `reflect` package to recursively traverse the structs.
 Create nested structs as we go.
@@ -194,9 +187,7 @@ Turns out it's easy:
 
 Patch the u/s k8s package? pending.
 
-* A monitoring story
-
-* challenge: the monitoring story
+* story #2 challenge: the monitoring story
 
 We want to report metrics about VM runtime behaviour
 
@@ -210,23 +201,20 @@ We really want metrics about the Guest behaviour
 
 It seems easy.
 
-
-* shared storage headaches
-
-Restarting VMs is often a big deal
-
-Live migration to the rescue!
+* story #2 shared storage headaches
 
 We need share storage for VM disks to have efficient live migrations
 
 Shared storage may get unresponsive/blocked
 
-* shared storage headaches, illustrated
-
-.image images/livemigration.png 420 _
+.image images/livemigration.png 400 _
 .caption Virtual Machine Live Migration, from "oVirt - open your virtual datacenter", by Simone Tiraboschi, CC Attribution
 
-* shared storage headaches, diving deeper
+* story#2 shared storage headaches, diving deeper
+
+*TL;DR:* we have synchronous, blocking API, we need to deal with a lot of objects
+
+Some details:
 
 Due to a longstanding issue of QEMU, if shared storage becomes unresponsive the libvirt API in turn becomes unresponsive
 
@@ -234,23 +222,24 @@ No monitoring for all the affected VMs - all the VMs which have storage on the u
 
 No monitoring data means hard or impossible self healing, reduced operations
 
-Is not a minor annoyance
+* story#2 monitoring, what we did before
 
-* monitoring, revised
+A event loop? - not possible because of API constraints
 
-Unresponsive VMs bring a lot of annoyances
+A thread per VM? - simple, but too much overhead
 
-We need to conform to prometheus practices
-
-libvirt API is blocking, could not be fixed easily (nor QEMU can). A event loop is not really possible
-
-A thread per VM? - too much overhead, need to manage the lifecycle
-A threadpool? - do you refill the pool if threads are blocked? How do you assign VMs to threads?
+A (smart) threadpool? - Yes but...
+- we need to tune the job queue size
+- we need to tune the pool size
+- we need to detect the blocked threads
+- we need to evict from the pool the blocked threads
+- we need to refill the thread pool
 
 Code get complex really quickly
-Tuning is hard - and workload dependent
 
-* goroutines to the rescue
+Tuning is hard - interactint knobs, workload dependent
+
+* story#2 goroutines to the rescue
 
 Or maybe: Just use a throw-away goroutine for each monitoring step for each VM
 The goroutine will do a single round of monitoring, then will self-destroy.
@@ -260,9 +249,7 @@ Goroutines are cheap to manage and fast to spawn!
 .image images/gophercomplex2.jpg _ 600
 .caption from "Concurrency is not Parallelism" - (C) Rob Pike 2012 - CC Attribution 3.0
 
-* monitoring, revised /2
-
-This approach works very very nicely because goroutine are very cheap and managed by runtime
+* story#2 goroutines to the rescue /2
 
 Of course still details to be taken care of:
 - track unresponsive VMs
@@ -276,8 +263,11 @@ Code is short and easy to follow (well, as easy as possible)
 
 * takeaways
 
-1. fit in the ecosystem aka do not fight the stream
-2. "pick the right tool for the right job" - starts early
+fit in the ecosystem aka do not fight the stream
+
+oftentimes the tools and the problem space influence each other - it's a two way street
+
+.image images/diagrams/solutions.png 400 _
 
 * Q? A!
 
